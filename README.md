@@ -68,7 +68,7 @@ chmod +x git_push_auto.sh
 Navegue até a pasta raiz do seu projeto Git e execute o script:
 
 ```bash
-./git_push_auto.sh
+bash git_push_auto.sh
 ```
 
 O script irá guiá-lo passo a passo através do processo.
