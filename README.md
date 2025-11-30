@@ -122,7 +122,7 @@ Se o GitHub detectar uma chave de API ou outro segredo no seu histórico de comm
 ## 👨‍💻 Autor
 
 *   **Autor:** Paulo Hernani Costa 🍥
-*   **Assistência no Desenvolvimento:** Gemini
+*   **Assistência no Desenvolvimento:** Gemini AI
 *   **Instagram:** @eu_paulo_ti
 
 ## 📄 Licença

@@ -146,9 +146,9 @@ function main_menu() {
         echo -e "      ${CYAN}Autor: Paulo Hernani | Assistência: Gemini${NC}"
         echo -e "${YELLOW}=========================================================="
         echo -e "${CYAN}Escolha uma opção:${NC}"
-        echo -e "1) ${GREEN}INICIAR PUSH/SINCRONIZAÇÃO${NC}"
-        echo -e "2) ${BLUE}VERIFICAR E ATUALIZAR SCRIPT${NC} (Recomendado ocasionalmente)"
-        echo -e "3) ${RED}SAIR${NC}"
+        echo -e "1) ${GREEN}INICIAR PUSH/SINCRONIZAÇÃO${NC} (🆗)"
+        echo -e "2) ${BLUE}VERIFICAR E ATUALIZAR SCRIPT${NC} (🔄)"
+        echo -e "3) ${RED}SAIR${NC} (❌)"
         
         read -r -p "$(echo -e "${YELLOW}Opção (1, 2 ou 3) [1]: ${NC}")" MENU_CHOICE
         MENU_CHOICE=${MENU_CHOICE:-1} 
