@@ -1,13 +1,10 @@
 #!/bin/bash
 
-# Script de Automação Git: Envio Completo Interativo (V52)
 # AUTORIA: Paulo Hernani | Assistência: Gemini
 # FLUXO: Menu -> Configura -> Autentica -> Limpa -> Sincroniza/Commit Base -> Commit -> Push
 
-# Versão do Script (ATUALIZE ESTE NÚMERO AO FAZER UMA NOVA VERSÃO)
 VERSION="52"
 
-# Definições de Cores (ANSI Escape Codes)
 NC='\033[0m'       
 RED='\033[0;31m'   
 GREEN='\033[0;32m' 
@@ -15,13 +12,10 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'  
 CYAN='\033[0;36m'  
 
-# Variáveis
 BRANCH_NAME="main"
 LARGE_FILE_SIZE_MB=50
-# URL de verificação específica (conforme sua preferência)
 REMOTE_SCRIPT_URL="https://raw.githubusercontent.com/Pauloh2206/script-auto-push/refs/heads/main/git_push_auto.sh"
 
-# VARIÁVEIS PARA ARMAZENAMENTO TEMPORÁRIO DE CREDENCIAIS
 GIT_USERNAME_STORE=""
 GIT_PASSWORD_STORE=""
 
@@ -50,38 +44,30 @@ function check_dependencies() {
 }
 
 function check_for_update() {
-    # Cria um arquivo temporário seguro (ex: /tmp/tmp.XXXXXX).
     local REMOTE_FILE
     if ! REMOTE_FILE=$(mktemp); then
         echo -e "${RED}❌ ERRO CRÍTICO: Não foi possível criar arquivo temporário. Prosseguindo com V${VERSION}.${NC}"
         return 1
     fi
     
-    # Garante a exclusão do arquivo temporário ao sair
     trap "rm -f $REMOTE_FILE" EXIT INT
 
     echo -e "${BLUE}🔎 Verificando por atualizações do próprio script (Timeout: 20s)... Versão local: V${VERSION}${NC}"
     
-    # 1. Tenta baixar o arquivo (Timeout: 20s)
     if curl --max-time 20 -s "$REMOTE_SCRIPT_URL" > "$REMOTE_FILE"; then
         
-        # 2. Verifica se o arquivo foi criado e não está vazio (Sucesso)
         if [ -s "$REMOTE_FILE" ]; then 
             
-            # Tenta extrair a versão remota (procura por VERSION="XX")
             local REMOTE_VERSION
             REMOTE_VERSION=$(grep '^VERSION=' "$REMOTE_FILE" | head -n 1 | cut -d'"' -f 2)
             UPDATE_PROCEED=0
 
-            # 3. Compara as versões numericamente
             if [ -z "$REMOTE_VERSION" ]; then
-                # Fallback: Se não conseguir extrair a versão remota, compara o conteúdo completo
                 if ! cmp -s "$0" "$REMOTE_FILE"; then
                     echo -e "${YELLOW}⚠️ Aviso: Não foi possível extrair a versão remota. Usando comparação de arquivo (cmp).${NC}"
                     UPDATE_PROCEED=1
                 fi
             elif [ "$REMOTE_VERSION" -gt "$VERSION" ]; then
-                # Versão remota é maior que a local (Sucesso na detecção)
                 echo -e "${YELLOW}🚨 ATUALIZAÇÃO DISPONÍVEL!${NC}"
                 echo -e "${YELLOW}   Uma nova versão (V${REMOTE_VERSION}) foi detectada. Você está na V${VERSION}.${NC}"
                 UPDATE_PROCEED=1
@@ -89,7 +75,6 @@ function check_for_update() {
                 echo -e "${GREEN}✅ Script já está na versão mais recente (V${VERSION}).${NC}"
             fi
 
-            # Se a atualização foi detectada, solicita permissão para prosseguir
             if [ "$UPDATE_PROCEED" -eq 1 ]; then
                 read -r -p "$(echo -e "${YELLOW}Deseja ATUALIZAR AGORA? (S/n): ${NC}")" UPDATE_CHOICE
                 
@@ -98,8 +83,7 @@ function check_for_update() {
                     chmod +x "$0"
                     echo -e "${GREEN}🚀 Script atualizado para a versão mais recente (V${REMOTE_VERSION:-0}).${NC}"
                     echo -e "${GREEN}✅ Re-executando o script para aplicar as mudanças e prosseguir automaticamente...${NC}"
-                    trap - EXIT INT # Remove o trap para não deletar o script atualizado
-                    # Re-executa o script com a flag --auto-start
+                    trap - EXIT INT 
                     exec bash "$0" --auto-start 
                 else
                     echo -e "${YELLOW}⚠️ Atualização ignorada. Prosseguindo com V${VERSION}.${NC}"
@@ -113,7 +97,6 @@ function check_for_update() {
         echo -e "${RED}❌ ERRO DE REDE: Não foi possível verificar atualizações (Timeout ou falha de conexão). Prosseguindo com V${VERSION}.${NC}"
     fi
     
-    # Remove o trap
     trap - EXIT INT
 }
 
@@ -179,16 +162,11 @@ function main_menu() {
 # ==========================================================
 check_dependencies
 
-# LÓGICA DE INÍCIO AUTOMÁTICO
-# Verifica se o script foi re-executado com a flag de auto-start (depois de uma atualização)
 if [ "$1" == "--auto-start" ]; then
     echo -e "\n${GREEN}✅ Início Automático (V${VERSION}) ativado após atualização. Prosseguindo...${NC}"
 else
-    # Se não houver a flag, exibe o menu normalmente
     main_menu
 fi
-
-# O script continua daqui, seja após a escolha da Opção 1 no menu, ou após o início automático.
 
 echo -e "\n${YELLOW}=========================================================="
 echo -e "          INÍCIO DO ENVIO SIMPLIFICADO AO GITHUB (V${VERSION})          "
@@ -463,14 +441,12 @@ while true; do
         echo -e "${CYAN}Saída Completa do Git (Diagnóstico):\n${PUSH_OUTPUT}${NC}"
         echo -e "${YELLOW}----------------------------------------------------------${NC}"
 
-        # Tratamento de erro de autenticação
         if echo "$PUSH_OUTPUT" | grep -q "fatal: Authentication failed" || echo "$PUSH_OUTPUT" | grep -q "Invalid username or token"; then
             echo -e "${RED}❌ FALHA NO PUSH: ERRO DE AUTENTICAÇÃO.${NC}"
             GIT_USERNAME_STORE=""; GIT_PASSWORD_STORE=""
             read -r -p "$(echo -e "${YELLOW}Deseja TENTAR NOVAMENTE as credenciais? (S/n) [S]: ${NC}")" RETRY_AUTH
             if [[ ${RETRY_AUTH:-S} =~ ^[Ss]$ ]]; then continue; else exit 1; fi
         
-        # Tratamento de Erro de Objeto Faltante / Remote Unpack Failed 
         elif echo "$PUSH_OUTPUT" | grep -q "remote unpack failed" || echo "$PUSH_OUTPUT" | grep -q "did not receive expected object"; then
              echo -e "${RED}❌ FALHA NO PUSH: ERRO DE OBJETO / DESEMPACOTAMENTO.${NC}"
              while true; do
@@ -490,13 +466,11 @@ while true; do
                 echo -e "${RED}❌ Opção inválida.${NC}"
             done
             
-        # Tratamento de Push Protection (GH013) 
         elif echo "$PUSH_OUTPUT" | grep -q "GH013: Repository rule violations found"; then
             echo -e "${RED}❌ FALHA NO PUSH: REJEITADO POR CONTER SEGREDO (GH013).${NC}"
             echo -e "${YELLOW}O GitHub detectou uma Chave de API em seu histórico. Remova, autorize ou use git filter-repo.${NC}"
             exit 1
 
-        # Falha genérica (Loop)
         else
             echo -e "${RED}❌ FALHA NO PUSH! Erro genérico.${NC}"
             read -r -p "$(echo -e "${YELLOW}Deseja TENTAR NOVAMENTE? (S/n) [S]: ${NC}")" RETRY_GENERIC
