@@ -1,16 +1,16 @@
 #!/bin/bash
 
-# Script de Automação Git: Envio Completo Interativo V41 (CONTROLE DE SEGURANÇA)
+# Script de Automação Git: Envio Completo Interativo V44 (OTIMIZADO)
 # AUTORIA: Paulo Hernani | Assistência: Gemini
-# FLUXO: Configura -> Autentica -> Limpa -> Sincroniza/Commit Base -> Commit -> Push
+# FLUXO: Atualiza -> Configura -> Autentica -> Limpa -> Sincroniza/Commit Base -> Commit -> Push
 
 # Definições de Cores (ANSI Escape Codes)
-NC='\033[0m'       # Sem Cor
-RED='\033[0;31m'   # Vermelho (Erros/Alertas de Segurança)
-GREEN='\033[0;32m' # Verde (Sucesso)
-YELLOW='\033[1;33m' # Amarelo (Avisos/Entradas)
-BLUE='\033[0;34m'  # Azul (Processos)
-CYAN='\033[0;36m'  # Ciano (Links/Informações)
+NC='\033[0m'       
+RED='\033[0;31m'   
+GREEN='\033[0;32m' 
+YELLOW='\033[1;33m' 
+BLUE='\033[0;34m'  
+CYAN='\033[0;36m'  
 
 # Variáveis
 BRANCH_NAME="main"
@@ -47,7 +47,31 @@ function check_dependencies() {
 
 function check_for_update() {
     echo -e "${BLUE}🔎 Verificando por atualizações do próprio script...${NC}"
-    echo -e "${GREEN}✅ Check de versão concluído.${NC}"
+    
+    if curl --max-time 10 -s "$REMOTE_SCRIPT_URL" > /tmp/git_push_auto_remote.sh; then
+        
+        if cmp -s "$0" /tmp/git_push_auto_remote.sh; then
+            echo -e "${GREEN}✅ Script já está na versão mais recente.${NC}"
+        else
+            echo -e "${YELLOW}🚨 ATUALIZAÇÃO DISPONÍVEL!${NC}"
+            echo -e "${YELLOW}   Uma nova versão (V44+) do script foi detectada.${NC}"
+            read -r -p "$(echo -e "${YELLOW}Deseja ATUALIZAR AGORA? (S/n): ${NC}")" UPDATE_CHOICE
+            
+            if [[ "$UPDATE_CHOICE" =~ ^[Ss]$ ]]; then
+                mv /tmp/git_push_auto_remote.sh "$0"
+                chmod +x "$0"
+                echo -e "${GREEN}🚀 Script atualizado para a versão mais recente (V44).${NC}"
+                echo -e "${YELLOW}Por favor, RE-EXECUTE o script para aplicar as mudanças.${NC}"
+                exit 0
+            else
+                echo -e "${YELLOW}⚠️ Atualização ignorada. Prosseguindo com a versão atual.${NC}"
+            fi
+        fi
+        
+        rm -f /tmp/git_push_auto_remote.sh
+    else
+        echo -e "${YELLOW}⚠️ Não foi possível verificar atualizações (erro de rede ou timeout). Prosseguindo.${NC}"
+    fi
 }
 
 function perform_git_cleanup() {
@@ -58,7 +82,6 @@ function perform_git_cleanup() {
         echo -e "${YELLOW}⚠️ Falha na limpeza do Git, mas prosseguindo.${NC}"
     fi
 
-    # Aborta estados pendentes (rebase/merge) para garantir um início limpo
     if git status 2>&1 | grep -q "You are currently rebasing"; then
         echo -e "${BLUE}⚙️ Abortando Rebase Pendente (git rebase --abort)...${NC}"
         git rebase --abort 2>/dev/null
@@ -76,17 +99,17 @@ function perform_git_cleanup() {
 # INÍCIO DO FLUXO
 # ==========================================================
 check_dependencies
-check_for_update
+check_for_update 
 
 echo -e "${YELLOW}=========================================================="
-echo -e "          INÍCIO DO ENVIO SIMPLIFICADO AO GITHUB (V41)          "
+echo -e "          INÍCIO DO ENVIO SIMPLIFICADO AO GITHUB (V44)          "
 echo -e "      ${CYAN}Autor: Paulo Hernani | Assistência: Gemini${NC}"
 echo -e "${YELLOW}=========================================================="
 echo -e "${NC}"
 
 sleep 2
 
-# 0. PRÉ-VERIFICAÇÃO E INICIALIZAÇÃO GIT
+# 0. PRÉ-VERIFICAÇÃO E INICIALIZAÇÃO GIT (OTIMIZADO)
 # ----------------------------------------------------------
 echo -e "\n${YELLOW}🚨 Você deve estar DENTRO da pasta raiz do seu projeto. Diretório: ${CYAN}$(pwd)${NC}"
 read -r -p "$(echo -e "${YELLOW}CONFIRMA que está na pasta do projeto? (S/n): ${NC}")" CONFIRMATION
@@ -97,12 +120,13 @@ if [ ! -d ".git" ]; then
     git init || { echo -e "${RED}❌ ERRO NA INICIALIZAÇÃO.${NC}"; exit 1; }
     echo -e "${GREEN}✅ Repositório Git inicializado.${NC}"
 else
-    echo -e "${YELLOW}⚠️ Git já inicializado.${NC}"
+    # PULA o init e apenas confirma que está lá
+    echo -e "${GREEN}✅ Repositório Git (.git) já inicializado.${NC}"
 fi
 
 echo -e "${BLUE}⚙️ Definindo branch principal como '$BRANCH_NAME'...${NC}"
 git branch -M $BRANCH_NAME 2>/dev/null
-# Lógica de correção de 'dubious ownership' (mantida)
+
 if [ $? -ne 0 ]; then
     if git status 2>&1 | grep -q "dubious ownership"; then
         CURRENT_DIR=$(pwd)
@@ -119,7 +143,7 @@ echo -e "${GREEN}✅ Branch principal definida.${NC}"
 echo -e "${YELLOW}----------------------------------------------------------${NC}"
 sleep 2
 
-# 1. CONFIGURAR REMOTO (URL)
+# 1. CONFIGURAR REMOTO (URL) - OTIMIZADO
 # ----------------------------------------------------------
 REMOTE_URL=$(git remote get-url origin 2>/dev/null)
 
@@ -134,20 +158,8 @@ if [ -z "$REMOTE_URL" ]; then
     git remote add origin "$REMOTE_URL"
     echo -e "${GREEN}✅ Repositório remoto configurado.${NC}"
 else
-    echo -e "${YELLOW}⚠️ Remoto configurado com: ${CYAN}$REMOTE_URL${NC}"
-    read -r -p "$(echo -e "${YELLOW}Deseja [C]ontinuar com esta URL ou [M]udar o link? (C/m): ${NC}")" CHANGE_REMOTE_CHOICE
-    
-    if [[ ${CHANGE_REMOTE_CHOICE:-C} =~ ^[Mm]$ ]]; then
-        while true; do
-            read -r -p "$(echo -e "${CYAN}🔗 COLE A NOVA URL HTTPS AQUI: ${NC}")" NEW_REPO_URL
-            if [[ "$NEW_REPO_URL" =~ ^https://github.com/.*\.git$ ]]; then
-                git remote set-url origin "$NEW_REPO_URL"
-                REMOTE_URL="$NEW_REPO_URL"
-                echo -e "${GREEN}✅ URL atualizada para: ${CYAN}$REMOTE_URL${NC}"; break
-            fi
-            echo -e "${RED}🚨 URL inválida.${NC}"
-        done
-    fi
+    # SE JÁ EXISTE, APENAS INFORMA E SEGUE O FLUXO (sem perguntar se quer mudar)
+    echo -e "${GREEN}✅ Remoto configurado com: ${CYAN}$REMOTE_URL${NC}"
 fi
 
 # 2. OBTENÇÃO DE CREDENCIAIS (Para PULL e PUSH)
@@ -176,7 +188,7 @@ PULL_URL="https://${GIT_USERNAME_STORE}:${GIT_PASSWORD_STORE}@${REMOTE_URL#https
 echo -e "${YELLOW}----------------------------------------------------------${NC}"
 sleep 1
 
-# 2.5. LIMPEZA PROATIVA (AUTOMÁTICA)
+# 2.5. LIMPEZA PROATIVA 
 # ----------------------------------------------------------
 echo -e "${CYAN}📌 PASSO 2.5/4: LIMPEZA PROATIVA DO REPOSITÓRIO LOCAL${NC}"
 perform_git_cleanup
@@ -184,29 +196,25 @@ echo -e "${YELLOW}----------------------------------------------------------${NC
 sleep 1
 
 
-# 3. SINCRONIZAÇÃO PROATIVA (PULL - Resolve Divergência, Fetch First e Unborn Branch)
+# 3. SINCRONIZAÇÃO PROATIVA (git pull --rebase)
 # ----------------------------------------------------------
 echo -e "${CYAN}📌 PASSO 3/4: SINCRONIZAÇÃO PROATIVA (git pull --rebase)${NC}"
 read -p "$(echo -e "${BLUE}✅ Pressione [Enter] para sincronizar e trazer mudanças remotas...${NC}")"
 
-# === INÍCIO DA CORREÇÃO AUTOMÁTICA DE 'UNBORN BRANCH' ===
 STASH_NEEDED=0
-# Verifica se a branch local não existe (unborn)
+
 if ! git rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
     echo -e "${YELLOW}⚠️ ALERTA: Branch local ('$BRANCH_NAME') é 'Unborn'. Criando commit inicial forçado...${NC}"
     
     git add .
     
-    if git commit -m "commit: Initial repository setup (Auto-generated by V41)" 2>/dev/null; then
+    if git commit -m "commit: Initial repository setup (Auto-generated by V44)" 2>/dev/null; then
         echo -e "${GREEN}✅ Commit inicial criado com sucesso. Branch 'nasceu'.${NC}"
     else
         echo -e "${YELLOW}⚠️ Aviso: Não havia arquivos para o commit inicial. Prosseguindo com Pull.${NC}"
     fi
-    # Se a branch é newborn, o commit resolve o problema, e não precisamos de stash.
 else
-    # === Lógica de Stash normal para Branches existentes ===
-    # O 'git stash push -u' tenta guardar todas as alterações, incluindo arquivos não rastreados
-    if git stash push -u -m "Auto-Stash antes do Pull Proativo V41" 2>/dev/null; then
+    if git stash push -u -m "Auto-Stash antes do Pull Proativo V44" 2>/dev/null; then
         STASH_NEEDED=1
         echo -e "${GREEN}✅ Alterações locais guardadas temporariamente (Stash).${NC}"
     else
@@ -217,16 +225,12 @@ else
         fi
     fi
 fi
-# === FIM DA CORREÇÃO AUTOMÁTICA DE 'UNBORN BRANCH' ===
-
 
 echo -e "${BLUE}⚙️ Executando 'git pull --rebase $PULL_URL $BRANCH_NAME' para sincronizar...${NC}"
 
-# Executa o Pull/Rebase
 if git pull --rebase "$PULL_URL" "$BRANCH_NAME"; then
     echo -e "${GREEN}✅ Sincronização Proativa concluída. Histórico alinhado.${NC}"
     
-    # Restaura as alterações locais guardadas
     if [ $STASH_NEEDED -eq 1 ]; then
         echo -e "${BLUE}⚙️ Restaurando alterações locais (Stash Pop)...${NC}"
         if ! git stash pop --index; then
@@ -249,11 +253,10 @@ echo -e "${YELLOW}----------------------------------------------------------${NC
 sleep 1
 
 
-# 4. VERIFICAÇÕES DE SEGURANÇA E EFICIÊNCIA (AGORA COM CONTROLE INTERATIVO)
+# 4. VERIFICAÇÕES DE SEGURANÇA E EFICIÊNCIA 
 # -------------------------------------------------------------------------
 echo -e "${BLUE}🔍 EXECUTANDO VERIFICAÇÕES DE SEGURANÇA E EFICIÊNCIA...${NC}"
 
-# Check 1: Arquivos Potencialmente Sensíveis (Comprometedor) - AGORA INTERATIVO
 SENSITIVE_FILES=$(git ls-files -o --exclude-standard | grep -E "\.(env|key|pem)$|^credentials\." | sed 's/^/  - /')
 if [ -n "$SENSITIVE_FILES" ]; then
     
@@ -274,7 +277,6 @@ if [ -n "$SENSITIVE_FILES" ]; then
 
         elif [ "$SECURITY_ACTION_CHOICE" == "2" ]; then
             echo -e "${BLUE}⚙️ Adicionando arquivos sensíveis ao .gitignore e removendo do rastreamento...${NC}"
-            # Itera sobre cada arquivo detectado e o adiciona ao .gitignore
             echo "$SENSITIVE_FILES" | sed 's/^  - //' | while read -r FILE; do
                 if [ -n "$FILE" ]; then
                     echo "$FILE" >> .gitignore
@@ -294,23 +296,21 @@ if [ -n "$SENSITIVE_FILES" ]; then
     done
 fi
 
-# Check 2: Arquivos Muito Grandes (Alerta informativo)
 LARGE_FILES=$(find . -type f -size +${LARGE_FILE_SIZE_MB}M -print -exec du -h {} + 2>/dev/null | grep -E "\.${LARGE_FILE_SIZE_MB}M" | awk '{print $2 " (" $1 ")"}' | head -n 3)
 if [ -n "$LARGE_FILES" ]; then
     echo -e "${YELLOW}\n⚠️ ALERTA DE EFICIÊNCIA: Arquivos muito grandes (>${LARGE_FILE_SIZE_MB}MB) detectados. Sugestão: Git LFS.${NC}"
     echo -e "   Arquivos encontrados (Top 3):\n${CYAN}${LARGE_FILES}${NC}"
 fi
 
-# Check 3: Arquivo .gitignore ausente (Alerta informativo)
 if [ ! -f ".gitignore" ]; then echo -e "${YELLOW}\n💡 SUGESTÃO: Arquivo '.gitignore' não encontrado. Crie um para evitar rastrear arquivos desnecessários.${NC}"; fi
 
 echo -e "${GREEN}\n✅ Verificações de segurança e eficiência concluídas.${NC}"
 echo -e "${YELLOW}----------------------------------------------------------${NC}"
 sleep 1
 
-# 5. ADICIONAR E COMMITAR (Limpeza Node_Modules AUTOMÁTICA)
+# 5. ADICIONAR E COMMITAR 
 # ----------------------------------------------------------
-# --- BLOCO DE CORREÇÃO AUTOMÁTICA DE NODE_MODULES ---
+
 if [ -d "node_modules" ] && ! grep -q "node_modules" .gitignore 2>/dev/null; then
     echo -e "\n${BLUE}⚙️ CORREÇÃO AUTOMÁTICA: Pasta 'node_modules' detectada e não ignorada.${NC}"
     echo -e "\nnode_modules/" >> .gitignore
@@ -356,10 +356,9 @@ fi
 echo -e "${YELLOW}----------------------------------------------------------${NC}"
 sleep 1
 
-# 6. ENVIAR PARA O GITHUB (Push) - Reutiliza a URL Autenticada
+# 6. ENVIAR PARA O GITHUB (Push)
 # ----------------------------------------------------------
 while true; do
-    # Reutiliza a URL autenticada definida no Passo 2
     PUSH_COMMAND="git push -u $PULL_URL $BRANCH_NAME" 
 
     read -p "$(echo -e "${GREEN}✅ Pressione [Enter] para executar o PUSH...${NC}")"
@@ -385,7 +384,7 @@ while true; do
             read -r -p "$(echo -e "${YELLOW}Deseja TENTAR NOVAMENTE as credenciais? (S/n) [S]: ${NC}")" RETRY_AUTH
             if [[ ${RETRY_AUTH:-S} =~ ^[Ss]$ ]]; then continue; else exit 1; fi
         
-        # Tratamento de Erro de Objeto Faltante / Remote Unpack Failed (Mantido da V31)
+        # Tratamento de Erro de Objeto Faltante / Remote Unpack Failed 
         elif echo "$PUSH_OUTPUT" | grep -q "remote unpack failed" || echo "$PUSH_OUTPUT" | grep -q "did not receive expected object"; then
              echo -e "${RED}❌ FALHA NO PUSH: ERRO DE OBJETO / DESEMPACOTAMENTO.${NC}"
              while true; do
@@ -405,7 +404,7 @@ while true; do
                 echo -e "${RED}❌ Opção inválida.${NC}"
             done
             
-        # Tratamento de Push Protection (GH013) - Simplificado
+        # Tratamento de Push Protection (GH013) 
         elif echo "$PUSH_OUTPUT" | grep -q "GH013: Repository rule violations found"; then
             echo -e "${RED}❌ FALHA NO PUSH: REJEITADO POR CONTER SEGREDO (GH013).${NC}"
             echo -e "${YELLOW}O GitHub detectou uma Chave de API em seu histórico. Remova, autorize ou use git filter-repo.${NC}"
@@ -424,7 +423,7 @@ done
 # CRÉDITOS FINAIS
 # ==========================================================
 echo -e "\n${YELLOW}=========================================================="
-echo -e "         FIM DO PROCESSO GIT INTERATIVO (V41)         "
+echo -e "         FIM DO PROCESSO GIT INTERATIVO (V44)         "
 echo -e "=========================================================="
 echo -e "${GREEN}✅ AUTOR: Paulo Hernani${NC}"
 echo -e "${GREEN}🤝 ASSISTÊNCIA NO SCRIPT: Gemini${NC}"
