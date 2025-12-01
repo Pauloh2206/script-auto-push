@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="69"
+VERSION="71"
 
 NC='\033[0m'       
 RED='\033[0;31m'   
@@ -21,20 +21,36 @@ GITHUB_API_URL="https://api.github.com"
 # FUNÇÕES DE SEGURANÇA E ERRO
 # ==========================================================
 
-# Limpeza interativa de credenciais
+# Limpeza interativa de credenciais e opção de Logout do GitHub CLI
 function interactive_cleanup() {
-    # Verifica se a variável de credencial está preenchida
+    # Verifica se a variável de credencial foi preenchida durante a execução
     if [ -n "$GIT_PASSWORD_STORE" ]; then
         echo -e "\n${YELLOW}==========================================================${NC}"
-        echo -e "${CYAN}SEGURANÇA: As credenciais (PAT) foram armazenadas temporariamente no ambiente de execução do script.${NC}"
+        echo -e "${CYAN}SEGURANÇA: As credenciais (PAT) foram carregadas para a memória temporária do script.${NC}"
         
-        read -r -p "$(echo -e "${RED}Deseja remover explicitamente as credenciais da memória agora? (S/n) [S]: ${NC}")" CLEANUP_CHOICE
-        CLEANUP_CHOICE=${CLEANUP_CHOICE:-S} # 'S' é o padrão
+        # 1. Limpa a memória temporária do script
+        read -r -p "$(echo -e "${RED}Deseja limpar as credenciais da memória do script AGORA? (S/n) [S]: ${NC}")" CLEANUP_CHOICE
+        CLEANUP_CHOICE=${CLEANUP_CHOICE:-S}
 
         if [[ "$CLEANUP_CHOICE" =~ ^[Ss]$ ]]; then
             GIT_PASSWORD_STORE=""
             GIT_USERNAME_STORE=""
-            echo -e "${GREEN}✅ Credenciais temporárias (PAT) removidas da memória.${NC}" >&2
+            echo -e "${GREEN}✅ Credenciais temporárias (PAT) removidas da memória do script.${NC}" >&2
+
+            # 2. Oferece a opção de deslogar do armazenamento persistente do GitHub CLI
+            echo -e "\n${BLUE}⚙️ O GitHub CLI (gh) armazena o token de forma persistente. Deseja deslogar completamente?${NC}"
+            read -r -p "$(echo -e "${YELLOW}Isso executa 'gh auth logout' e exige novo login na próxima execução. (S/n) [n]: ${NC}")" LOGOUT_GH_CHOICE
+            LOGOUT_GH_CHOICE=${LOGOUT_GH_CHOICE:-n} 
+
+            if [[ "$LOGOUT_GH_CHOICE" =~ ^[Ss]$ ]]; then
+                echo -e "${RED}🚨 Executando 'gh auth logout'...${NC}"
+                # Desloga silenciosamente, impedindo que o script se logue automaticamente na próxima execução
+                gh auth logout -h github.com &> /dev/null 
+                echo -e "${GREEN}✅ Logout completo do GitHub CLI realizado.${NC}"
+            else
+                echo -e "${YELLOW}⚠️ O GitHub CLI (gh) permanece logado. O script se logará automaticamente na próxima vez.${NC}"
+            fi
+
         else
             echo -e "${YELLOW}⚠️ Credenciais mantidas até o encerramento natural do shell script.${NC}" >&2
         fi
@@ -105,14 +121,40 @@ function github_api_call() {
 function get_github_pat_and_user() {
     echo -e "\n${CYAN}📌 PASSO 1/5: AUTENTICAÇÃO VIA GITHUB CLI (gh)${NC}"
     
-    if ! gh auth status &> /dev/null; then
-        echo -e "${RED}❌ Não autenticado via 'gh'.${NC}"
-        echo -e "${YELLOW}Execute 'gh auth login --scopes repo' em outra sessão do Termux e retorne.${NC}"
-        read -p "$(echo -e "${YELLOW}Pressione [Enter] após fazer login...${NC}")"
-        if ! gh auth status &> /dev/null; then
-            handle_fatal_error "Falha na autenticação do GitHub CLI."
+    # Loop para tentar autenticar até que seja bem-sucedido ou fatal
+    while ! gh auth status &> /dev/null; do
+        echo -e "${RED}❌ Não autenticado via 'gh'. Iniciando processo de login interativo...${NC}"
+        echo -e "${YELLOW}🚨 Siga as instruções no terminal para completar o login (será necessário usar um navegador).${NC}"
+        
+        # Inicia o login interativo
+        if gh auth login --scopes repo; then
+            echo -e "${GREEN}✅ Tentativa de Login concluída. Verificando status...${NC}"
+        else
+            # O gh auth login falhou por algum motivo (e.g., cancelado, erro de rede)
+            echo -e "${RED}❌ O processo 'gh auth login' falhou ou foi cancelado.${NC}"
+            read -r -p "$(echo -e "${YELLOW}Deseja TENTAR NOVAMENTE o login do GitHub CLI? (S/n) [S]: ${NC}")" RETRY_LOGIN
+            RETRY_LOGIN=${RETRY_LOGIN:-S}
+
+            if [[ ! "$RETRY_LOGIN" =~ ^[Ss]$ ]]; then
+                handle_fatal_error "Login do GitHub CLI não foi concluído. Operação cancelada."
+            fi
+            continue # Volta para o início do loop
         fi
-    fi
+        
+        # Uma pausa para dar tempo do gh atualizar o status após a conclusão do login
+        sleep 2 
+
+        if ! gh auth status &> /dev/null; then
+            echo -e "${RED}❌ Falha na verificação de status após o login. Verifique as mensagens de erro acima.${NC}"
+            read -r -p "$(echo -e "${YELLOW}Pressione [Enter] para tentar novamente o Login, ou 'n' para sair: ${NC}")" FINAL_CHECK_RETRY
+            FINAL_CHECK_RETRY=${FINAL_CHECK_RETRY:-S}
+            if [[ ! "$FINAL_CHECK_RETRY" =~ ^[Ss]$ ]]; then
+                handle_fatal_error "Falha persistente na autenticação do GitHub CLI."
+            fi
+        fi
+    done
+
+    # Se saiu do loop, o status é OK. Procede para obter as credenciais.
     
     echo -e "${BLUE}⚙️ Obtendo Personal Access Token (PAT)...${NC}"
     GIT_PASSWORD_STORE=$(gh auth token) 
@@ -209,7 +251,6 @@ function check_for_update() {
         return 1
     fi
     
-    # Não usa trap global, pois a limpeza interativa será chamada no final
     trap "rm -f $REMOTE_FILE" EXIT INT 
 
     echo -e "${BLUE}🔎 Verificando por atualizações (Timeout: 20s)... Versão local: V${VERSION}${NC}"
@@ -247,7 +288,7 @@ function check_for_update() {
         echo -e "${RED}❌ ERRO DE REDE: Não foi possível verificar atualizações. Prosseguindo com V${VERSION}.${NC}"
     fi
     
-    trap - EXIT INT # Remove o trap local
+    trap - EXIT INT
 }
 
 function main_menu() {
