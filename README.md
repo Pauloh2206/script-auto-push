@@ -9,7 +9,7 @@ O `git_push_auto.sh` é um script de automação em Bash que simplifica e torna 
 *   **Segurança:** Alerta sobre arquivos sensíveis e oferece **Limpeza Interativa de Credenciais** após o uso.
 *   **Interatividade:** Guia o usuário passo a passo, incluindo um menu para seleção de prefixos de commit.
 
-[![Gemini-Generated-Image-p6l708p6l708p6l7.png](https://i.postimg.cc/7YMMfS01/Gemini-Generated-Image-p6l708p6l708p6l7.png)](https://postimg.cc/vcT6KgPD)
+
 
 ---
 
@@ -27,6 +27,16 @@ Você precisa ter os seguintes utilitários instalados:
 ```bash
 pkg install git curl coreutils jq gh
 ```
+
+---
+
+### 🔑 Detalhes da Autenticação (GitHub CLI)
+
+Ao executar o script, se o GitHub CLI (\`gh\`) não estiver logado, ele iniciará um processo interativo. Siga estas opções:
+
+1.  **Host:** \`GitHub.com\`
+2.  **Protocolo:** \`HTTPS (PAT) ou SSH (KEY)\`
+3.  **Método:** \`Paste an authentication token (PAT)\`
 
 ---
 
@@ -54,10 +64,6 @@ bash git_push_auto.sh
 
 O script irá guiar você através da autenticação, commit e push, oferecendo soluções interativas para erros comuns.
 
-Durante autenticação ⬇️
-1 - "Github.com"
-2 - "HTTPS (PAT) ou SSH (KEY)"
-3 - "Paste an authentication token (PAT)"
 ---
 
 ## 👨‍💻 Autor
