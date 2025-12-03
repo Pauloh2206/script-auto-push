@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="3.1"
+VERSION="79"
 
 NC='\033[0m'
 RED='\033[0;31m'
