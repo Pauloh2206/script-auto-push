@@ -1,13 +1,13 @@
 #!/bin/bash
 
-VERSION="71"
+VERSION="3.1"
 
-NC='\033[0m'       
-RED='\033[0;31m'   
-GREEN='\033[0;32m' 
-YELLOW='\033[1;33m' 
-BLUE='\033[0;34m'  
-CYAN='\033[0;36m'  
+NC='\033[0m'
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 
 BRANCH_NAME="main"
 LARGE_FILE_SIZE_MB=50
@@ -40,12 +40,12 @@ function interactive_cleanup() {
             # 2. Oferece a opção de deslogar do armazenamento persistente do GitHub CLI
             echo -e "\n${BLUE}⚙️ O GitHub CLI (gh) armazena o token de forma persistente. Deseja deslogar completamente?${NC}"
             read -r -p "$(echo -e "${YELLOW}Isso executa 'gh auth logout' e exige novo login na próxima execução. (S/n) [n]: ${NC}")" LOGOUT_GH_CHOICE
-            LOGOUT_GH_CHOICE=${LOGOUT_GH_CHOICE:-n} 
+            LOGOUT_GH_CHOICE=${LOGOUT_GH_CHOICE:-n}
 
             if [[ "$LOGOUT_GH_CHOICE" =~ ^[Ss]$ ]]; then
                 echo -e "${RED}🚨 Executando 'gh auth logout'...${NC}"
                 # Desloga silenciosamente, impedindo que o script se logue automaticamente na próxima execução
-                gh auth logout -h github.com &> /dev/null 
+                gh auth logout -h github.com &> /dev/null
                 echo -e "${GREEN}✅ Logout completo do GitHub CLI realizado.${NC}"
             else
                 echo -e "${YELLOW}⚠️ O GitHub CLI (gh) permanece logado. O script se logará automaticamente na próxima vez.${NC}"
@@ -68,10 +68,10 @@ function handle_fatal_error() {
 
 function check_dependencies() {
     local missing_deps=()
-    local deps=("git" "curl" "cmp" "jq" "gh") 
+    local deps=("git" "curl" "cmp" "jq" "gh")
 
     for dep in "${deps[@]}"; do
-        if ! command -v "$dep" &> /dev/null; then 
+        if ! command -v "$dep" &> /dev/null; then
             missing_deps+=("$dep")
         fi
     done
@@ -101,8 +101,8 @@ function github_api_call() {
     
     local curl_exit_code=$?
     if [ $curl_exit_code -ne 0 ]; then
-         echo "❌ Falha crítica no comando cURL (Timeout de 30s ou erro de conexão). (Exit: $curl_exit_code)" >&2
-         return 1
+           echo "❌ Falha crítica no comando cURL (Timeout de 30s ou erro de conexão). (Exit: $curl_exit_code)" >&2
+           return 1
     fi
     
     if echo "$response" | grep -q '{"message":'; then
@@ -142,7 +142,7 @@ function get_github_pat_and_user() {
         fi
         
         # Uma pausa para dar tempo do gh atualizar o status após a conclusão do login
-        sleep 2 
+        sleep 2
 
         if ! gh auth status &> /dev/null; then
             echo -e "${RED}❌ Falha na verificação de status após o login. Verifique as mensagens de erro acima.${NC}"
@@ -157,7 +157,7 @@ function get_github_pat_and_user() {
     # Se saiu do loop, o status é OK. Procede para obter as credenciais.
     
     echo -e "${BLUE}⚙️ Obtendo Personal Access Token (PAT)...${NC}"
-    GIT_PASSWORD_STORE=$(gh auth token) 
+    GIT_PASSWORD_STORE=$(gh auth token)
 
     if [ -z "$GIT_PASSWORD_STORE" ]; then
         handle_fatal_error "Falha ao obter o PAT. Verifique se você está logado."
@@ -171,6 +171,7 @@ function get_github_pat_and_user() {
         handle_fatal_error "Falha ao obter o nome de usuário via API. PAT inválido/expirado ou timeout."
     fi
     
+    # Armazena o usuário logado dinamicamente
     GIT_USERNAME_STORE=$(echo "$user_response" | jq -r '.login')
 
     if [ -z "$GIT_USERNAME_STORE" ] || [ "$GIT_USERNAME_STORE" = "null" ]; then
@@ -251,12 +252,12 @@ function check_for_update() {
         return 1
     fi
     
-    trap "rm -f $REMOTE_FILE" EXIT INT 
+    trap "rm -f $REMOTE_FILE" EXIT INT
 
     echo -e "${BLUE}🔎 Verificando por atualizações (Timeout: 20s)... Versão local: V${VERSION}${NC}"
     
     if curl --max-time 20 -s "$REMOTE_SCRIPT_URL" > "$REMOTE_FILE"; then
-        if [ -s "$REMOTE_FILE" ]; then 
+        if [ -s "$REMOTE_FILE" ]; then
             local REMOTE_VERSION
             REMOTE_VERSION=$(grep '^VERSION=' "$REMOTE_FILE" | head -n 1 | cut -d'"' -f 2)
             UPDATE_PROCEED=0
@@ -275,8 +276,8 @@ function check_for_update() {
                     mv "$REMOTE_FILE" "$0"
                     chmod +x "$0"
                     echo -e "${GREEN}🚀 Script atualizado! Re-executando para aplicar as mudanças...${NC}"
-                    trap - EXIT INT 
-                    exec bash "$0" --auto-start 
+                    trap - EXIT INT
+                    exec bash "$0" --auto-start
                 else
                     echo -e "${YELLOW}⚠️ Atualização ignorada. Prosseguindo com V${VERSION}.${NC}"
                 fi
@@ -295,7 +296,7 @@ function main_menu() {
     
     while true; do
         echo -e "\n${YELLOW}=========================================================="
-        echo -e "       MENU INICIAL - AUTOMAÇÃO GIT (V${VERSION})         "
+        echo -e "       MENU INICIAL - AUTOMAÇÃO GIT (V${VERSION})         "
         echo -e "=========================================================="
         echo -e "${CYAN}Escolha uma opção:${NC}"
         echo -e "1) ${GREEN}INICIAR PUSH/SINCRONIZAÇÃO${NC} (🆗)"
@@ -303,11 +304,11 @@ function main_menu() {
         echo -e "3) ${RED}SAIR${NC} (❌)"
         
         read -r -p "$(echo -e "${YELLOW}Opção (1, 2 ou 3) [1]: ${NC}")" MENU_CHOICE
-        MENU_CHOICE=${MENU_CHOICE:-1} 
+        MENU_CHOICE=${MENU_CHOICE:-1}
 
         case "$MENU_CHOICE" in
             1) break ;;
-            2) check_for_update ;; 
+            2) check_for_update ;;
             3) echo -e "${RED}❌ Operação cancelada pelo usuário.${NC}"; interactive_cleanup; exit 0 ;;
             *) echo -e "${RED}❌ Opção inválida. Escolha 1, 2 ou 3.${NC}" ;;
         esac
@@ -325,7 +326,7 @@ if [ "$1" != "--auto-start" ]; then
 fi
 
 echo -e "\n${YELLOW}=========================================================="
-echo -e "          INÍCIO DO ENVIO SIMPLIFICADO AO GITHUB (V${VERSION})          "
+echo -e "          INÍCIO DO ENVIO SIMPLIFICADO AO GITHUB (V${VERSION})          "
 echo -e "${YELLOW}=========================================================="
 sleep 1
 
@@ -358,23 +359,75 @@ if [ -z "$REMOTE_URL" ]; then
     while true; do
         echo -e "\n${CYAN}Nenhum repositório remoto configurado ('origin'). Escolha uma ação:${NC}"
         echo -e "1) ${YELLOW}Criar um Novo Repositório no GitHub${NC}"
-        echo -e "2) ${RED}Inserir URL Manualmente${NC}"
+        echo -e "2) ${BLUE}Listar e Escolher um Repositório Existente${NC}"  # NOVA OPÇÃO
+        echo -e "3) ${RED}Inserir URL Manualmente${NC}"
         
-        read -r -p "$(echo -e "${YELLOW}Opção (1 ou 2) [1]: ${NC}")" REPO_ACTION
+        read -r -p "$(echo -e "${YELLOW}Opção (1, 2 ou 3) [1]: ${NC}")" REPO_ACTION
         REPO_ACTION=${REPO_ACTION:-1}
 
         if [ "$REPO_ACTION" == "1" ]; then
-            NEW_REPO_URL=$(create_new_repo 2>&1)
-            if [ $? -eq 0 ]; then break; fi
-            handle_fatal_error "Falha no processo de criação de repositório."
+            # Lógica para Criar Novo Repositório
+            create_output=$(create_new_repo)
+            create_exit_code=$?
+            
+            NEW_REPO_URL="$create_output"
+            
+            if [ $create_exit_code -eq 0 ] && [ -n "$NEW_REPO_URL" ] && [ "$NEW_REPO_URL" != "null" ]; then
+                echo -e "${GREEN}✅ URL do Novo Repositório capturado com sucesso.${NC}" >&2
+                break
+            else
+                echo -e "${RED}❌ Falha na criação do repositório. Tentando novamente...${NC}" >&2
+            fi
         
         elif [ "$REPO_ACTION" == "2" ]; then
+            # Lógica para Listar e Escolher Repositório (NOVA LÓGICA)
+            echo -e "${BLUE}⚙️ Listando repositórios ativos do usuário ${GIT_USERNAME_STORE}...${NC}"
+            
+            # Pega a lista (gh repo list $USUARIO_LOGADO)
+            REPOS=$(gh repo list "$GIT_USERNAME_STORE" --limit 50 --json name,url | jq -r '.[] | .name + " (" + .url + ")"')
+            
+            if [ -z "$REPOS" ]; then
+                echo -e "${RED}❌ Não foram encontrados repositórios. Tente criar um novo ou inserir a URL manualmente.${NC}" >&2
+                continue
+            fi
+
+            echo -e "\n${CYAN}🔢 REPOSITÓRIOS ENCONTRADOS (Max 50):${NC}"
+            # Cria um array com apenas os nomes para o 'select'
+            REPO_NAMES=()
+            while IFS= read -r line; do
+                REPO_NAMES+=("$(echo "$line" | cut -d' ' -f1)")
+            done <<< "$REPOS"
+
+            # Adiciona uma opção de cancelamento
+            REPO_NAMES+=("CANCELAR e voltar ao menu anterior")
+
+            select SELECTED_REPO in "${REPO_NAMES[@]}"; do
+                if [ "$SELECTED_REPO" == "CANCELAR e voltar ao menu anterior" ]; then
+                    echo -e "${YELLOW}⚠️ Seleção cancelada. Voltando ao menu de ações.${NC}"
+                    break 
+                elif [ -n "$SELECTED_REPO" ]; then
+                    # Encontra a URL completa com base no nome selecionado
+                    NEW_REPO_URL=$(echo "$REPOS" | grep "^$SELECTED_REPO (" | head -n 1 | cut -d' ' -f2 | tr -d '()')
+                    echo -e "${GREEN}✅ Repositório selecionado: ${CYAN}$SELECTED_REPO${NC}" >&2
+                    echo -e "${GREEN}✅ URL capturada: ${CYAN}$NEW_REPO_URL${NC}" >&2
+                    break 2 # Sai do select E do while true
+                else
+                    echo -e "${RED}❌ Opção inválida. Tente novamente.${NC}"
+                fi
+            done
+            if [ -n "$NEW_REPO_URL" ]; then
+                break # Sai do loop de configuração remota se a URL foi definida
+            fi
+
+        elif [ "$REPO_ACTION" == "3" ]; then
+            # Lógica para Inserir URL Manualmente
             break
         else
-            echo -e "${RED}❌ Opção inválida.${NC}"
+            echo -e "${RED}❌ Opção inválida. Escolha 1, 2 ou 3.${NC}"
         fi
     done
     
+    # Esta parte é a mesma do seu código:
     if [ -z "$NEW_REPO_URL" ]; then
         echo -e "\n${CYAN}🔗 Modo de Configuração Manual Ativado.${NC}"
         while true; do
@@ -384,9 +437,38 @@ if [ -z "$REMOTE_URL" ]; then
         done
     fi
 
-    git remote add origin "$NEW_REPO_URL" || handle_fatal_error "Falha ao adicionar o remoto."
+    # >>> INÍCIO DO BLOCO DE CORREÇÃO AUTOMÁTICA DE SEGURANÇA <<<
+    
+    # Tenta adicionar o remoto, capturando a saída de erro
+    ADD_REMOTE_OUTPUT=$(git remote add origin "$NEW_REPO_URL" 2>&1)
+    ADD_REMOTE_EXIT_CODE=$?
+
+    if [ $ADD_REMOTE_EXIT_CODE -ne 0 ]; then
+        # Falhou. Verifica se foi um erro de "dubious ownership"
+        if echo "$ADD_REMOTE_OUTPUT" | grep -q "dubious ownership"; then
+            echo -e "\n${YELLOW}⚠️ ERRO DE SEGURANÇA DETECTADO (Dubious Ownership). Tentando correção automática...${NC}"
+            
+            # Adiciona o diretório atual ($(pwd)) à lista segura do Git globalmente.
+            git config --global --add safe.directory "$(pwd)"
+            echo -e "${GREEN}✅ Diretório '$(pwd)' adicionado à lista segura do Git.${NC}"
+            
+            # Tenta novamente adicionar o remoto (deve funcionar agora)
+            ADD_REMOTE_RETRY_OUTPUT=$(git remote add origin "$NEW_REPO_URL" 2>&1)
+            if [ $? -ne 0 ]; then
+                # Se falhar novamente (por outra razão), é um erro fatal
+                handle_fatal_error "Falha persistente ao adicionar o remoto, mesmo após correção de segurança. (Erro: $ADD_REMOTE_RETRY_OUTPUT)"
+            fi
+        else
+            # Falhou por um motivo diferente
+            handle_fatal_error "Falha ao adicionar o remoto. (Erro: $ADD_REMOTE_OUTPUT)"
+        fi
+    fi
+    
+    # Se chegou até aqui, o remoto foi adicionado com sucesso (na 1ª ou 2ª tentativa)
     REMOTE_URL="$NEW_REPO_URL"
     echo -e "${GREEN}✅ Repositório remoto configurado.${NC}"
+    # >>> FIM DO BLOCO DE CORREÇÃO AUTOMÁTICA DE SEGURANÇA <<<
+    
 else
     echo -e "${GREEN}✅ Remoto configurado com: ${CYAN}$REMOTE_URL${NC}"
 fi
@@ -395,7 +477,7 @@ PULL_URL="https://${GIT_USERNAME_STORE}:${GIT_PASSWORD_STORE}@${REMOTE_URL#https
 
 echo -e "${YELLOW}----------------------------------------------------------${NC}"
 
-# 2. LIMPEZA PROATIVA 
+# 2. LIMPEZA PROATIVA
 # ----------------------------------------------------------
 echo -e "${CYAN}📌 PASSO 3/5: LIMPEZA PROATIVA DO REPOSITÓRIO LOCAL${NC}"
 perform_git_cleanup
@@ -410,6 +492,10 @@ read -p "$(echo -e "${BLUE}✅ Pressione [Enter] para sincronizar e trazer mudan
 STASH_NEEDED=0
 LOCAL_CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
 
+# =========================================================================
+# >> LÓGICA DE INICIALIZAÇÃO DE REPOSITÓRIO E CORREÇÃO DE BRANCH LOCAL <<
+
+# 1. Trata repositório 'Unborn' (sem commits) e renomeia a branch local para 'main'
 if ! git rev-parse --verify HEAD >/dev/null 2>&1 || [ "$LOCAL_CURRENT_BRANCH" = "HEAD" ]; then
     echo -e "${YELLOW}⚠️ ALERTA: Repositório é 'Unborn' (sem commits). Criando commit inicial forçado...${NC}"
     
@@ -419,7 +505,7 @@ if ! git rev-parse --verify HEAD >/dev/null 2>&1 || [ "$LOCAL_CURRENT_BRANCH" = 
         echo -e "${GREEN}✅ Commit inicial criado.${NC}"
         LOCAL_CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
     else
-        echo -e "${YELLOW}⚠️ Aviso: Sem arquivos para o commit inicial. Prosseguindo com Pull.${NC}"
+        echo -e "${YELLOW}⚠️ Aviso: Sem arquivos para o commit inicial. Prosseguindo...${NC}"
     fi
 
     if [ "$LOCAL_CURRENT_BRANCH" != "$BRANCH_NAME" ]; then
@@ -429,6 +515,7 @@ if ! git rev-parse --verify HEAD >/dev/null 2>&1 || [ "$LOCAL_CURRENT_BRANCH" = 
         echo -e "${GREEN}✅ Branch local definida como '$BRANCH_NAME'.${NC}"
     fi
 else
+    # Se já tem commits, faz stash e renomeia a branch
     if git stash push -u -m "Auto-Stash antes do Pull Proativo V${VERSION}" 2>/dev/null; then
         STASH_NEEDED=1
         echo -e "${GREEN}✅ Alterações locais guardadas temporariamente (Stash).${NC}"
@@ -436,6 +523,7 @@ else
     
     if [ "$LOCAL_CURRENT_BRANCH" != "$BRANCH_NAME" ]; then
         echo -e "${BLUE}⚙️ Renomeando branch local de '${LOCAL_CURRENT_BRANCH}' para '$BRANCH_NAME'...${NC}"
+        # Se for o Termux/Android, adiciona o safe.directory
         if git status 2>&1 | grep -q "dubious ownership"; then
             git config --global --add safe.directory "$(pwd)"
         fi
@@ -445,10 +533,19 @@ else
     fi
 fi
 
-echo -e "${BLUE}⚙️ Executando 'git pull --rebase $PULL_URL $BRANCH_NAME' para sincronizar...${NC}"
+# =========================================================================
+# >> CORREÇÃO: VERIFICA SE O REPOSITÓRIO REMOTO ESTÁ VAZIO <<
 
-if git pull --rebase "$PULL_URL" "$BRANCH_NAME"; then
-    echo -e "${GREEN}✅ Sincronização Proativa concluída. Histórico alinhado.${NC}"
+REMOTE_HAS_COMMITS=0
+# O 'git ls-remote' verifica se a branch 'main' existe no servidor.
+if git ls-remote --exit-code "$PULL_URL" "$BRANCH_NAME" >/dev/null 2>&1; then
+    REMOTE_HAS_COMMITS=1
+fi
+
+if [ "$REMOTE_HAS_COMMITS" -eq 0 ]; then
+    echo -e "${YELLOW}⚠️ ALERTA: Repositório remoto '${BRANCH_NAME}' não existe (vazio). Pulando Pull/Rebase.${NC}"
+    echo -e "${BLUE}⚙️ O primeiro 'push' criará a branch remota.${NC}"
+    # Se não há commits remotos, não há o que puxar/sincronizar.
     
     if [ $STASH_NEEDED -eq 1 ]; then
         echo -e "${BLUE}⚙️ Restaurando alterações locais (Stash Pop)...${NC}"
@@ -459,41 +556,58 @@ if git pull --rebase "$PULL_URL" "$BRANCH_NAME"; then
     fi
 
 else
-    echo -e "${RED}❌ ERRO NO PULL/REBASE! O Git parou devido a CONFLITOS.${NC}"
-    
-    while true; do
-        echo -e "\n${YELLOW}ESCOLHA AÇÃO DE CORREÇÃO AUTOMÁTICA:${NC}"
-        echo -e "1) ${GREEN}PULAR/DESCARTAR o Commit Inicial Conflitante${NC}"
-        echo -e "2) ${RED}SAIR${NC} e resolver manualmente."
-        
-        read -r -p "$(echo -e "${YELLOW}Opção (1 ou 2) [1]: ${NC}")" CONFLICT_ACTION
-        CONFLICT_ACTION=${CONFLICT_ACTION:-1}
+    # Se houver commits remotos, executa a sincronização normal
+    echo -e "${BLUE}⚙️ Executando 'git pull --rebase $PULL_URL $BRANCH_NAME' para sincronizar...${NC}"
 
-        if [ "$CONFLICT_ACTION" == "1" ]; then
-            echo -e "${BLUE}⚙️ Tentando pular o commit problemático (git rebase --skip)...${NC}"
-            if git rebase --skip; then
-                echo -e "${GREEN}✅ Commit inicial pulado com sucesso!${NC}"
-                break 
-            else
-                handle_fatal_error "ERRO CRÍTICO: O 'git rebase --skip' falhou. Ação manual é inevitável."
+    if git pull --rebase "$PULL_URL" "$BRANCH_NAME"; then
+        echo -e "${GREEN}✅ Sincronização Proativa concluída. Histórico alinhado.${NC}"
+        
+        if [ $STASH_NEEDED -eq 1 ]; then
+            echo -e "${BLUE}⚙️ Restaurando alterações locais (Stash Pop)...${NC}"
+            if ! git stash pop --index; then
+                handle_fatal_error "ERRO ao restaurar alterações (Stash Pop)! Conflito local, resolva e use 'git stash drop'."
             fi
-        elif [ "$CONFLICT_ACTION" == "2" ]; then
-            handle_fatal_error "Operação cancelada. Ação manual necessária."
-        else
-            echo -e "${RED}❌ Opção inválida.${NC}"
+            echo -e "${GREEN}✅ Alterações locais restauradas.${NC}"
         fi
-    done
+
+    else
+        # Tratamento de CONFLITOS REAIS
+        echo -e "${RED}❌ ERRO NO PULL/REBASE! O Git parou devido a CONFLITOS.${NC}"
+        
+        while true; do
+            echo -e "\n${YELLOW}ESCOLHA AÇÃO DE CORREÇÃO AUTOMÁTICA:${NC}"
+            echo -e "1) ${GREEN}PULAR/DESCARTAR o Commit Inicial Conflitante${NC}"
+            echo -e "2) ${RED}SAIR${NC} e resolver manualmente."
+            
+            read -r -p "$(echo -e "${YELLOW}Opção (1 ou 2) [1]: ${NC}")" CONFLICT_ACTION
+            CONFLICT_ACTION=${CONFLICT_ACTION:-1}
+
+            if [ "$CONFLICT_ACTION" == "1" ]; then
+                echo -e "${BLUE}⚙️ Tentando pular o commit problemático (git rebase --skip)...${NC}"
+                if git rebase --skip; then
+                    echo -e "${GREEN}✅ Commit inicial pulado com sucesso!${NC}"
+                    break
+                else
+                    handle_fatal_error "ERRO CRÍTICO: O 'git rebase --skip' falhou. Ação manual é inevitável."
+                fi
+            elif [ "$CONFLICT_ACTION" == "2" ]; then
+                handle_fatal_error "Operação cancelada. Ação manual necessária."
+            else
+                echo -e "${RED}❌ Opção inválida.${NC}"
+            fi
+        done
+    fi
 
 fi
-
+# O fluxo agora continua no Passo 5
 echo -e "${YELLOW}----------------------------------------------------------${NC}"
 
 
-# 4. VERIFICAÇÕES DE SEGURANÇA E EFICIÊNCIA 
+# 4. VERIFICAÇÕES DE SEGURANÇA E EFICIÊNCIA
 # -------------------------------------------------------------------------
 echo -e "${CYAN}📌 PASSO 5/5: VERIFICAÇÕES DE SEGURANÇA E EFICIÊNCIA...${NC}"
 
-SENSITIVE_FILES=$(git ls-files -o --exclude-standard | grep -E "\.(env|key|pem)$|^credentials\." | sed 's/^/  - /')
+SENSITIVE_FILES=$(git ls-files -o --exclude-standard | grep -E "\.(env|key|pem)$|^credentials\." | sed 's/^/  - /')
 if [ -n "$SENSITIVE_FILES" ]; then
     echo -e "${RED}\n🚨 ALERTA DE SEGURANÇA: Arquivos potencialmente COMPROMETEDORES detectados!${NC}"
     
@@ -502,13 +616,13 @@ if [ -n "$SENSITIVE_FILES" ]; then
         echo -e "2) ${GREEN}Adicionar ao .gitignore e Continuar${NC}."
         
         read -r -p "$(echo -e "${YELLOW}Opção (1 ou 2) [1]: ${NC}")" SECURITY_ACTION_CHOICE
-        SECURITY_ACTION_CHOICE=${SECURITY_ACTION_CHOICE:-1} 
+        SECURITY_ACTION_CHOICE=${SECURITY_ACTION_CHOICE:-1}
 
         if [ "$SECURITY_ACTION_CHOICE" == "1" ]; then
             handle_fatal_error "Operação INTERROMPIDA. Arquivos sensíveis detectados."
         elif [ "$SECURITY_ACTION_CHOICE" == "2" ]; then
             echo -e "${BLUE}⚙️ Adicionando arquivos sensíveis ao .gitignore...${NC}"
-            echo "$SENSITIVE_FILES" | sed 's/^  - //' | while read -r FILE; do
+            echo "$SENSITIVE_FILES" | sed 's/^  - //' | while read -r FILE; do
                 if [ -n "$FILE" ]; then
                     echo "$FILE" >> .gitignore
                     git rm --cached "$FILE" 2>/dev/null
@@ -532,7 +646,7 @@ fi
 echo -e "${GREEN}\n✅ Verificações concluídas.${NC}"
 echo -e "${YELLOW}----------------------------------------------------------${NC}"
 
-# 5. ADICIONAR E COMMITAR 
+# 5. ADICIONAR E COMMITAR
 # ----------------------------------------------------------
 read -p "$(echo -e "${YELLOW}✅ Pressione [Enter] para adicionar todos os arquivos (git add .)...${NC}")"
 git add .
@@ -574,7 +688,7 @@ echo -e "${YELLOW}----------------------------------------------------------${NC
 # 6. ENVIAR PARA O GITHUB (Push)
 # ----------------------------------------------------------
 while true; do
-    PUSH_COMMAND="git push -u $PULL_URL $BRANCH_NAME" 
+    PUSH_COMMAND="git push -u $PULL_URL $BRANCH_NAME"
 
     read -p "$(echo -e "${GREEN}✅ Pressione [Enter] para executar o PUSH...${NC}")"
     echo -e "${BLUE}📡 Iniciando o envio. Aguarde o resultado...${NC}"
@@ -617,7 +731,7 @@ done
 # CRÉDITOS FINAIS E LIMPEZA
 # ==========================================================
 echo -e "\n${YELLOW}=========================================================="
-echo -e "         FIM DO PROCESSO GIT INTERATIVO (V${VERSION})         "
+echo -e "FIM DO PROCESSO GIT INTERATIVO (V${VERSION})"
 echo -e "=========================================================="
 echo -e "${GREEN}✅ AUTOR: Paulo Hernani${NC}"
 echo -e "${GREEN}🤝 ASSISTÊNCIA NO SCRIPT: Gemini${NC}"
